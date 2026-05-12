@@ -1,0 +1,20 @@
+services:
+  ghost-schema:
+    build: .
+    image: ghost-schema:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      # Local dev: bind-mount ./data
+      # AWS: replace with EBS-backed volume (see deploy.sh)
+      - ./data:/app/data
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GHOST_DB_PATH=/app/data/ghost.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

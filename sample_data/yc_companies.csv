@@ -1,0 +1,69 @@
+name,description
+Stripe,Online payment processing infrastructure for internet businesses. Helps companies accept payments, manage subscriptions, and handle global financial operations.
+Airbnb,Online marketplace for short-term homestays and vacation rentals. Connects hosts with travelers seeking unique lodging experiences worldwide.
+Dropbox,Cloud storage and file synchronization service for individuals and businesses. Enables teams to share and collaborate on files from any device.
+DoorDash,Food delivery platform connecting customers with local restaurants and merchants. Also offers logistics and last-mile delivery solutions for businesses.
+Instacart,Grocery delivery and pick-up service that partners with local grocery stores to deliver fresh food to consumers.
+Brex,Corporate credit cards and spend management platform built for startups and enterprise companies. Provides financial services without personal guarantees.
+Gusto,Payroll, benefits, and HR management platform designed for small and medium-sized businesses. Automates tax filings and compliance.
+Flexport,Digital freight forwarder and supply chain management platform. Helps importers and exporters move cargo globally with full visibility.
+Lattice,People management platform for HR teams. Helps companies run performance reviews, set goals, and manage employee development.
+Retool,Low-code platform for building internal business tools and dashboards. Enables developers to rapidly build admin panels and workflows.
+Scale AI,Data labeling and AI training data platform. Provides high-quality annotated datasets for autonomous vehicles, robotics, and AI applications.
+Cruise,Autonomous vehicle company building self-driving cars for urban ride-hailing. Uses computer vision and machine learning for navigation.
+Rippling,HR, IT, and finance operations platform. Manages employee payroll, benefits, devices, and apps from a single system.
+Faire,Online wholesale marketplace connecting independent retailers with emerging brands. Helps small retailers discover and purchase inventory.
+Heap,Product analytics platform that automatically captures user behavior data. Helps product teams understand how users interact with their applications.
+Benchling,Life sciences R&D platform for biotech and pharmaceutical companies. Manages lab data, electronic lab notebooks, and scientific workflows.
+Cohere,Natural language processing and large language model API for enterprise applications. Provides text classification, generation, and semantic search.
+Recursion Pharmaceuticals,Biotechnology company using machine learning to discover new drugs. Combines biological experiments with AI to accelerate drug development.
+Nuvation Bio,Clinical-stage biopharmaceutical company developing novel cancer therapies. Focuses on oncology treatments for patients with limited options.
+Abridge,AI-powered medical documentation tool that automatically generates clinical notes from doctor-patient conversations. Used in hospital systems.
+Viz.ai,Clinical AI platform that analyzes medical imaging data to detect time-sensitive conditions like stroke. Helps hospitals coordinate care faster.
+Olive AI,Healthcare automation company using AI to streamline administrative workflows in hospitals and health systems. Reduces manual billing and prior authorization tasks.
+Sword Health,Digital physical therapy platform delivering AI-guided exercise therapy for musculoskeletal conditions. Partners with employers and health plans.
+Hims & Hers,Telehealth platform offering personalized treatments for hair loss, sexual health, and mental wellness. Connects patients with licensed providers online.
+Spring Health,Mental health benefits platform for employers. Provides precision mental healthcare by matching employees with the right therapy and treatment.
+Transcarent,Health and care navigation platform for self-insured employers. Connects employees to high-quality, affordable care and surgery centers.
+Included Health,Integrated virtual care and navigation platform for employers and health plans. Provides primary care, mental health, and care coordination services.
+Color Health,Population health and genetic testing company. Helps health systems and employers run large-scale cancer screening and prevention programs.
+Nomi Health,Direct healthcare company that builds and operates clinics for employers. Focuses on primary care, behavioral health, and pharmacy services.
+Devoted Health,Medicare Advantage insurance plan using technology to improve care for seniors. Integrates insurance with care coordination and primary care.
+Oscar Health,Health insurance company using technology to make healthcare more affordable. Offers individual and employer health plans with virtual care.
+Turvo,Cloud-based collaboration platform for freight and logistics companies. Connects shippers, brokers, and carriers to manage shipments in real time.
+project44,Supply chain visibility platform for shippers and logistics providers. Provides real-time tracking of shipments across ocean, air, and ground freight.
+Samsara,IoT platform for fleet management and industrial operations. Provides GPS tracking, dashcams, and sensor data for trucking and logistics companies.
+Motive,Connected operations platform for fleet management. Provides ELD compliance, GPS tracking, driver safety tools, and fuel management for trucking.
+KeepTruckin,Fleet management software and electronic logging device for trucking companies. Helps carriers manage compliance, dispatching, and driver safety.
+Shippo,Multi-carrier shipping software for e-commerce businesses. Provides discounted shipping rates and label printing through a single API.
+EasyPost,Shipping API for e-commerce and logistics companies. Enables businesses to compare carrier rates, print labels, and track packages.
+OpenSea,Largest NFT marketplace for buying, selling, and discovering digital art and collectibles on blockchain networks.
+Coinbase,Cryptocurrency exchange and wallet platform for retail and institutional investors. Also provides developer tools for building on blockchain.
+FTX,Cryptocurrency derivatives exchange offering futures, options, and leveraged tokens. Serves both retail and institutional traders globally.
+Figma,Collaborative web-based design tool for product teams. Enables designers and developers to prototype and design user interfaces together.
+Linear,Project management tool for software development teams. Provides issue tracking, roadmaps, and workflows optimized for engineering workflows.
+Notion,All-in-one workspace for notes, wikis, databases, and project management. Used by teams for documentation and collaboration.
+Loom,Asynchronous video messaging platform for teams. Allows users to record and share video messages instead of scheduling meetings.
+Coda,Document platform that blends documents, spreadsheets, and applications into one flexible workspace for teams.
+Airtable,Low-code platform for building collaborative applications on top of spreadsheet-like databases. Used for project management and workflow automation.
+Zapier,Workflow automation platform that connects different apps and services. Allows non-technical users to automate repetitive tasks without coding.
+Make (Integromat),Visual automation platform for connecting apps and designing automated workflows. Used by marketing and operations teams for process automation.
+Mixpanel,Product analytics platform for tracking user behavior in digital products. Helps growth and product teams analyze funnels and retention.
+Amplitude,Digital analytics platform for product, growth, and data teams. Provides behavioral analytics and experimentation tools for digital products.
+Segment,Customer data platform that collects, unifies, and routes customer data to analytics and marketing tools. Used by data and engineering teams.
+mParticle,Customer data platform for mobile and web applications. Provides data collection, quality enforcement, and audience targeting for marketers.
+Lyft,Ride-hailing and transportation network company. Offers personal mobility services including rideshare, bikes, and scooters in North American cities.
+Bird,Electric scooter sharing company operating in cities worldwide. Provides last-mile transportation solutions through app-based rentals.
+Lime,Shared micromobility company offering electric scooters and bikes. Operates in cities globally to provide sustainable urban transportation options.
+Verkada,Cloud-based physical security platform for enterprises. Provides video surveillance cameras, access control, and environmental sensors managed from one dashboard.
+Verkada,Enterprise physical security platform with cloud-managed cameras and door access systems used in schools, offices, and hospitals.
+Persona,Identity verification platform for businesses. Provides KYC, AML, and fraud prevention tools to verify customer identities at onboarding.
+Socure,Digital identity verification and fraud prediction platform. Uses AI to verify identities and reduce fraud for financial services and government.
+Alloy,Identity decisioning platform for financial institutions. Helps banks and fintechs automate KYC, fraud detection, and compliance decisions.
+Column,Nationally chartered bank and technology company providing banking infrastructure for fintechs. Offers programmatic banking through APIs.
+Unit,Embedded finance platform that lets companies add banking features to their products. Provides bank accounts, cards, and payments via API.
+Ramp,Corporate card and spend management platform focused on reducing company costs. Provides expense tracking, bill pay, and procurement tools.
+Mercury,Banking platform for startups and technology companies. Provides checking and savings accounts with built-in financial tools.
+Arc,Revenue-based financing platform for SaaS companies. Provides non-dilutive capital and financial tools for software businesses.
+Pipe,Trading platform that allows SaaS companies to sell their recurring revenue for upfront capital. Enables non-dilutive financing for growth.
+Clearco,Revenue-based financing for e-commerce and SaaS companies. Provides growth capital in exchange for a percentage of future revenue.

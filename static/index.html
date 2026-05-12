@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghost Schema · Agentic Database</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #c9d1d9; --muted: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --yellow: #d29922; --red: #f85149;
+    --purple: #bc8cff; --cyan: #39c5cf;
+    --font: 'SF Mono','Fira Code','Cascadia Code',monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; height: 100vh; display: flex; flex-direction: column; }
+
+  /* Header */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .logo { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: -.5px; }
+  .logo span { color: var(--purple); }
+  .tagline { color: var(--muted); font-size: 11px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-left: auto; box-shadow: 0 0 5px var(--green); }
+
+  /* Layout */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  aside { width: 240px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .sidebar-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+
+  /* Project list */
+  .project-list { overflow-y: auto; flex: 1; }
+  .project-item { padding: 7px 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-left: 2px solid transparent; transition: all .15s; }
+  .project-item:hover { background: rgba(88,166,255,.05); border-left-color: var(--border); }
+  .project-item.active { background: rgba(88,166,255,.08); border-left-color: var(--accent); color: var(--accent); }
+  .project-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .project-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; opacity: 0; transition: opacity .15s; }
+  .project-item:hover .project-del { opacity: 1; }
+  .project-del:hover { color: var(--red); }
+
+  /* New project */
+  .new-project { display: flex; gap: 6px; padding: 8px 14px; border-top: 1px solid var(--border); }
+  .new-project input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 12px; padding: 4px 8px; border-radius: 4px; outline: none; }
+  .new-project input:focus { border-color: var(--accent); }
+  .new-project input::placeholder { color: var(--muted); }
+
+  /* Schema panel */
+  .schema-scroll { overflow-y: auto; max-height: 260px; padding: 4px 0; }
+  .table-item { padding: 5px 14px; }
+  .table-name { color: var(--accent); font-size: 12px; }
+  .table-rows { color: var(--muted); font-size: 10px; margin-left: 4px; }
+  .col-item { font-size: 11px; color: var(--muted); padding: 1px 0 1px 10px; }
+  .col-item.jit { color: var(--purple); }
+  .col-item.jit::before { content: "⚡ "; }
+
+  /* JIT cache */
+  .jit-list { overflow-y: auto; max-height: 160px; padding: 4px 0; }
+  .jit-row { padding: 4px 14px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
+  .jit-badge { background: rgba(188,140,255,.15); color: var(--purple); border: 1px solid rgba(188,140,255,.3); border-radius: 3px; padding: 1px 5px; font-size: 10px; flex-shrink: 0; }
+  .jit-col { color: var(--purple); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .jit-n { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+  .jit-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; line-height: 1; opacity: .5; flex-shrink: 0; }
+  .jit-del:hover { opacity: 1; }
+
+  /* Main */
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .main-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px 20px 16px; gap: 12px; }
+
+  /* No project placeholder */
+  .no-project { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); flex-direction: column; gap: 8px; }
+  .no-project-icon { font-size: 32px; opacity: .3; }
+
+  /* Upload zone */
+  .upload-zone { border: 1px dashed var(--border); border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: all .2s; flex-shrink: 0; }
+  .upload-zone.drag-over { border-color: var(--accent); background: rgba(88,166,255,.05); }
+  .upload-label { color: var(--muted); font-size: 12px; flex: 1; }
+  .upload-label strong { color: var(--text); }
+  input[type=file] { display: none; }
+
+  /* Buttons */
+  .btn { background: var(--accent); color: #000; border: none; border-radius: 4px; padding: 5px 12px; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-ghost { background: none; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: none; }
+  .btn-sm { padding: 3px 8px; font-size: 11px; }
+
+  /* Query */
+  .query-row { display: flex; gap: 8px; flex-shrink: 0; }
+  .query-input { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 13px; padding: 9px 12px; border-radius: 6px; outline: none; transition: border-color .15s; }
+  .query-input:focus { border-color: var(--accent); }
+  .query-input::placeholder { color: var(--muted); }
+
+  .suggestions { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+  .sug { background: none; border: 1px solid var(--border); color: var(--muted); font-family: var(--font); font-size: 11px; padding: 2px 8px; border-radius: 4px; cursor: pointer; transition: all .15s; }
+  .sug:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Exec log */
+  .exec-log { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 11px; min-height: 70px; max-height: 220px; overflow-y: auto; display: none; flex-shrink: 0; }
+  .exec-log.visible { display: block; }
+  .log-line { display: flex; gap: 7px; padding: 2px 0; animation: fadein .2s; align-items: flex-start; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; } }
+  .log-step { font-size: 10px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: .5px; min-width: 100px; text-align: center; }
+  .step-architect_start    { background: rgba(188,140,255,.2);  color: var(--purple); }
+  .step-architect_thinking { background: rgba(88,166,255,.1);   color: var(--accent); }
+  .step-architect_tool     { background: rgba(57,197,207,.15);  color: var(--cyan); }
+  .step-tool_output        { background: rgba(48,54,61,.8);     color: var(--muted); }
+  .step-aggregating        { background: rgba(88,166,255,.15);  color: var(--accent); }
+  .step-done               { background: rgba(63,185,80,.15);   color: var(--green); }
+  .step-error              { background: rgba(248,81,73,.15);   color: var(--red); }
+  .log-msg { flex: 1; word-break: break-word; color: var(--text); }
+
+  /* Result */
+  .result-area { flex: 1; overflow-y: auto; display: none; }
+  .result-area.visible { display: block; }
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .result-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .result-badge { font-size: 10px; padding: 2px 7px; border-radius: 3px; background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .jit-badge-sm { font-size: 10px; padding: 2px 7px; border-radius: 3px; background: rgba(188,140,255,.15); color: var(--purple); border: 1px solid rgba(188,140,255,.3); margin-left: auto; }
+  .result-answer { font-size: 20px; font-weight: 700; padding: 14px; }
+  .result-meta { padding: 0 14px 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .chip { font-size: 10px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
+  .chip strong { color: var(--purple); }
+
+  /* JIT distribution */
+  .jit-dist { padding: 10px 14px; border-top: 1px solid var(--border); }
+  .jit-dist-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  .dist-bars { display: flex; flex-direction: column; gap: 3px; }
+  .dist-row { display: flex; align-items: center; gap: 6px; }
+  .dist-label { width: 40px; text-align: right; font-size: 11px; }
+  .dist-track { flex: 1; height: 14px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .dist-bar { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 5px; font-size: 10px; font-weight: 600; transition: width .5s ease; }
+  .dist-bar.yes { background: rgba(63,185,80,.35); color: var(--green); }
+  .dist-bar.no  { background: rgba(248,81,73,.25); color: var(--red); }
+  .dist-count { font-size: 10px; color: var(--muted); min-width: 25px; }
+
+  /* SQL */
+  .sql-box { margin: 8px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px; font-size: 11px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+  .sql-box .kw { color: var(--accent); }
+
+  /* Results table */
+  .raw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .raw-table th { background: var(--bg); color: var(--muted); text-align: left; padding: 5px 12px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .raw-table td { padding: 5px 12px; border-bottom: 1px solid rgba(48,54,61,.5); }
+  .raw-table tr:last-child td { border-bottom: none; }
+
+  /* Upload status */
+  .upload-status { font-size: 11px; color: var(--green); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ghost<span>Schema</span></div>
+  <div class="tagline">Agentic Database · Just-In-Time Schema</div>
+  <div class="dot"></div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside>
+    <!-- Projects -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Projects</div>
+    </div>
+    <div class="project-list" id="projectList"></div>
+    <div class="new-project">
+      <input id="newProjectInput" placeholder="new project name…" onkeydown="if(event.key==='Enter')createProject()">
+      <button class="btn btn-sm" onclick="createProject()">+</button>
+    </div>
+
+    <!-- Schema for selected project -->
+    <div class="sidebar-section" style="margin-top:0">
+      <div class="sidebar-label">Tables</div>
+    </div>
+    <div class="schema-scroll" id="schemaPanel">
+      <div style="padding:8px 14px;color:var(--muted);font-size:11px;">Select a project.</div>
+    </div>
+
+    <!-- JIT cache -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">⚡ JIT Cache</div>
+    </div>
+    <div class="jit-list" id="jitPanel">
+      <div style="padding:5px 14px;color:var(--muted);font-size:11px;">—</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main>
+    <!-- No project selected -->
+    <div class="no-project" id="noProject">
+      <div class="no-project-icon">🗄️</div>
+      <div style="color:var(--muted)">Create or select a project to get started.</div>
+    </div>
+
+    <!-- Project workspace -->
+    <div class="main-inner" id="workspace" style="display:none">
+
+      <!-- Upload -->
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-label">
+          <strong>Add table</strong> — drop a CSV or
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fileInput').click()" style="margin-left:4px">browse</button>
+        </div>
+        <input type="file" id="fileInput" accept=".csv" onchange="onFileSelected()">
+        <input id="tableNameInput" placeholder="table name (optional)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:12px;padding:4px 8px;border-radius:4px;width:160px;outline:none">
+        <button class="btn" id="uploadBtn" onclick="uploadFile()" disabled>Upload</button>
+      </div>
+      <div id="uploadStatus" class="upload-status" style="display:none"></div>
+
+      <!-- Query -->
+      <div class="query-row">
+        <input class="query-input" id="queryInput" placeholder='Ask anything about your data…' onkeydown="if(event.key==='Enter')runQuery()">
+        <button class="btn" id="queryBtn" onclick="runQuery()">Run</button>
+      </div>
+      <div class="suggestions" id="suggestions"></div>
+
+      <!-- Log -->
+      <div class="exec-log" id="execLog"></div>
+
+      <!-- Result -->
+      <div class="result-area" id="resultArea"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+let currentProject = null;
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+async function loadProjects() {
+  const res = await fetch('/api/projects');
+  const { projects } = await res.json();
+  const list = document.getElementById('projectList');
+  if (!projects.length) {
+    list.innerHTML = '<div style="padding:8px 14px;color:var(--muted);font-size:11px;">No projects yet.</div>';
+    return;
+  }
+  list.innerHTML = projects.map(p => `
+    <div class="project-item${p===currentProject?' active':''}" onclick="selectProject('${esc(p)}')">
+      <span class="project-name">📁 ${esc(p)}</span>
+      <button class="project-del" onclick="event.stopPropagation();deleteProject('${esc(p)}')" title="Delete">×</button>
+    </div>`).join('');
+}
+
+async function createProject() {
+  const input = document.getElementById('newProjectInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const res = await fetch('/api/projects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+  if (res.ok) {
+    input.value = '';
+    await loadProjects();
+    selectProject(name);
+  } else {
+    const d = await res.json();
+    alert(d.detail || 'Error creating project');
+  }
+}
+
+async function deleteProject(name) {
+  if (!confirm(`Delete project "${name}" and all its data?`)) return;
+  await fetch(`/api/projects/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  if (currentProject === name) {
+    currentProject = null;
+    document.getElementById('noProject').style.display = '';
+    document.getElementById('workspace').style.display = 'none';
+    renderSchema(null);
+  }
+  loadProjects();
+}
+
+function selectProject(name) {
+  currentProject = name;
+  document.getElementById('noProject').style.display = 'none';
+  document.getElementById('workspace').style.display = '';
+  document.getElementById('execLog').classList.remove('visible');
+  document.getElementById('resultArea').classList.remove('visible');
+  document.getElementById('resultArea').innerHTML = '';
+  document.getElementById('execLog').innerHTML = '';
+  loadProjects();
+  loadSchema();
+}
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+async function loadSchema() {
+  if (!currentProject) return;
+  const res = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/schema`);
+  const data = await res.json();
+  renderSchema(data);
+  renderSuggestions(data);
+}
+
+function renderSchema(data) {
+  const panel = document.getElementById('schemaPanel');
+  const jit   = document.getElementById('jitPanel');
+  if (!data) {
+    panel.innerHTML = '<div style="padding:8px 14px;color:var(--muted);font-size:11px;">Select a project.</div>';
+    jit.innerHTML   = '<div style="padding:5px 14px;color:var(--muted);font-size:11px;">—</div>';
+    return;
+  }
+
+  const jitSet = new Set((data.jit_columns||[]).map(j=>`${j.table}.${j.column}`));
+  const tables = Object.entries(data.tables||{});
+  panel.innerHTML = tables.length ? tables.map(([t,info])=>`
+    <div class="table-item">
+      <span class="table-name">${esc(t)}</span><span class="table-rows">${info.row_count} rows</span>
+      ${info.columns.map(c=>`<div class="col-item${jitSet.has(t+'.'+c.name)?' jit':''}">${esc(c.name)}</div>`).join('')}
+    </div>`).join('') : '<div style="padding:8px 14px;color:var(--muted);font-size:11px;">No tables yet.</div>';
+
+  const jitCols = data.jit_columns||[];
+  jit.innerHTML = jitCols.length ? jitCols.map(j=>`
+    <div class="jit-row">
+      <span class="jit-badge">JIT</span>
+      <span class="jit-col" title="${esc(j.table)}.${esc(j.column)}">${esc(j.column)}</span>
+      <span class="jit-n">${j.cached_rows}r</span>
+      <button class="jit-del" onclick="deleteJit('${esc(j.table)}','${esc(j.column)}')">×</button>
+    </div>`).join('') : '<div style="padding:5px 14px;color:var(--muted);font-size:11px;">None.</div>';
+}
+
+function renderSuggestions(data) {
+  const tables = Object.keys(data.tables||{});
+  const base = [
+    'how many rows are there?',
+    'summarize the data',
+    'find all entries that mention AI',
+  ];
+  const s = document.getElementById('suggestions');
+  s.innerHTML = '<span style="color:var(--muted);font-size:11px;align-self:center">Try:</span>' +
+    base.map(q=>`<button class="sug" onclick="setQuery(this.textContent)">${esc(q)}</button>`).join('');
+}
+
+async function deleteJit(table, col) {
+  await fetch(`/api/projects/${encodeURIComponent(currentProject)}/jit/${encodeURIComponent(table)}/${encodeURIComponent(col)}`, { method: 'DELETE' });
+  loadSchema();
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+function onFileSelected() {
+  const f = document.getElementById('fileInput').files[0];
+  document.getElementById('uploadBtn').disabled = !f;
+  if (f && !document.getElementById('tableNameInput').value)
+    document.getElementById('tableNameInput').value = f.name.replace(/\.csv$/i,'');
+}
+
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) {
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    onFileSelected();
+  }
+});
+
+async function uploadFile() {
+  if (!currentProject) return;
+  const f = document.getElementById('fileInput').files[0];
+  if (!f) return;
+  const tableName = document.getElementById('tableNameInput').value.trim() || f.name.replace(/\.csv$/i,'');
+  const fd = new FormData();
+  fd.append('file', f);
+  fd.append('table_name', tableName);
+
+  const btn = document.getElementById('uploadBtn');
+  const status = document.getElementById('uploadStatus');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  status.style.display = 'block'; status.style.color = 'var(--muted)'; status.textContent = 'Uploading…';
+
+  try {
+    const res = await fetch(`/api/projects/${encodeURIComponent(currentProject)}/ingest`, { method: 'POST', body: fd });
+    const d = await res.json();
+    if (res.ok) {
+      status.textContent = `✓ Table "${d.table}" created — ${d.rows} rows, ${d.columns.length} columns`;
+      status.style.color = 'var(--green)';
+      document.getElementById('tableNameInput').value = '';
+      loadSchema();
+    } else {
+      status.textContent = `Error: ${d.detail||JSON.stringify(d)}`;
+      status.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    status.textContent = `Error: ${e.message}`;
+    status.style.color = 'var(--red)';
+  }
+  btn.disabled = false; btn.textContent = 'Upload';
+}
+
+// ── Query ─────────────────────────────────────────────────────────────────────
+function setQuery(q) { document.getElementById('queryInput').value = q; document.getElementById('queryInput').focus(); }
+
+function runQuery() {
+  if (!currentProject) return;
+  const q = document.getElementById('queryInput').value.trim();
+  if (!q) return;
+
+  const log = document.getElementById('execLog');
+  const area = document.getElementById('resultArea');
+  log.innerHTML = ''; area.innerHTML = '';
+  log.classList.add('visible'); area.classList.remove('visible');
+
+  const btn = document.getElementById('queryBtn');
+  btn.disabled = true; btn.textContent = 'Running…';
+
+  const url = `/api/projects/${encodeURIComponent(currentProject)}/query/stream?q=${encodeURIComponent(q)}`;
+  const es = new EventSource(url);
+
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    appendLog(ev);
+    if (ev.step === 'done') {
+      es.close(); btn.disabled = false; btn.textContent = 'Run';
+      renderResult(ev); loadSchema();
+    } else if (ev.step === 'error') {
+      es.close(); btn.disabled = false; btn.textContent = 'Run';
+    }
+  };
+  es.onerror = () => {
+    es.close(); btn.disabled = false; btn.textContent = 'Run';
+    appendLog({step:'error', message:'Connection lost.'});
+  };
+}
+
+function appendLog(ev) {
+  const log = document.getElementById('execLog');
+  const step = (ev.step||'').replace(/_/g,' ');
+  const cls = `step-${(ev.step||'').replace(/_/g,'_')}`;
+  const spin = ['architect_start','architect_thinking','architect_tool','aggregating'].includes(ev.step)
+    ? '<span style="display:inline-block;width:9px;height:9px;border:1.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-left:4px;vertical-align:middle"></span>' : '';
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-step ${cls}">${esc(step)}</span><span class="log-msg">${esc(ev.message||'')}${spin}</span>`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+  if (!document.styleSheets[0].cssRules[0].cssText.includes('spin'))
+    document.head.insertAdjacentHTML('beforeend','<style>@keyframes spin{to{transform:rotate(360deg)}}</style>');
+}
+
+function renderResult(ev) {
+  const area = document.getElementById('resultArea');
+  area.classList.add('visible');
+  const rows = ev.result||[];
+  const dist = ev.jit_distribution;
+  const jitCol = ev.jit_column;
+  const sql = ev.final_sql||'';
+
+  let answerHtml = '';
+  if (rows.length > 0) {
+    const keys = Object.keys(rows[0]);
+    if (keys.length === 1) {
+      answerHtml = `<span style="color:var(--accent)">${esc(String(Object.values(rows[0])[0]))}</span>`;
+    } else {
+      answerHtml = Object.entries(rows[0]).map(([k,v])=>`<span style="color:var(--muted)">${esc(k)}:</span> <span style="color:var(--accent)">${esc(String(v))}</span>`).join('  ');
+    }
+  }
+
+  let distHtml = '';
+  if (dist) {
+    const total = Object.values(dist).reduce((a,b)=>a+b,0);
+    distHtml = `<div class="jit-dist">
+      <div class="jit-dist-title">⚡ JIT column "${esc(jitCol)}" — distribution</div>
+      <div class="dist-bars">${Object.entries(dist).map(([val,n])=>{
+        const pct = total ? (n/total*100).toFixed(1) : 0;
+        return `<div class="dist-row">
+          <div class="dist-label" style="color:var(--${val==='yes'?'green':'red'})">${esc(val)}</div>
+          <div class="dist-track"><div class="dist-bar ${val}" style="width:${pct}%">${pct}%</div></div>
+          <div class="dist-count">${n}</div>
+        </div>`;
+      }).join('')}</div></div>`;
+  }
+
+  let tableHtml = '';
+  if (rows.length > 1) {
+    const keys = Object.keys(rows[0]);
+    tableHtml = `<div style="border-top:1px solid var(--border)"><table class="raw-table">
+      <thead><tr>${keys.map(k=>`<th>${esc(k)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>${Object.values(r).map(v=>`<td>${esc(String(v??''))}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  const sqlHl = esc(sql).replace(/\b(SELECT|FROM|JOIN|ON|WHERE|AND|OR|COUNT|GROUP BY|ORDER BY|LIMIT|AS|INNER|LEFT)\b/g,'<span class="kw">$1</span>');
+
+  area.innerHTML = `<div class="result-card">
+    <div class="result-header">
+      <span class="result-badge">ANSWER</span>
+      <span style="color:var(--muted);font-size:11px">${esc(ev.answer_prefix||'')}</span>
+      ${jitCol?`<span class="jit-badge-sm">⚡ ${esc(jitCol)}</span>`:''}
+    </div>
+    <div class="result-answer">${answerHtml}</div>
+    <div class="result-meta">
+      <span class="chip">rows: <strong>${rows.length}</strong></span>
+      ${jitCol?`<span class="chip">jit: <strong>${esc(jitCol)}</strong></span>`:''}
+    </div>
+    ${distHtml}
+    <div style="padding:6px 14px 10px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">SQL</div>
+      <div class="sql-box">${sqlHl}</div>
+    </div>
+    ${tableHtml}
+  </div>`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadProjects();
+setInterval(loadProjects, 15000);
+</script>
+</body>
+</html>

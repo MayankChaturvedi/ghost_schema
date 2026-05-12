@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Data (SQLite files — mount as volume in production)
+data/*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
