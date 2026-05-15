@@ -6,6 +6,11 @@
 #   OAuth/keychain are never used (--bare flag enforces this).
 #   ANTHROPIC_API_KEY and GEMINI_API_KEY must be injected at runtime.
 #   Neither key is baked into this image.
+#
+# Non-root user 'ghost' (uid 1001):
+#   Claude Code refuses --dangerously-skip-permissions when running as root.
+#   All runtime processes run as ghost. The EBS mount at /app/data must be
+#   chowned to uid 1001 on the host (deploy.sh handles this).
 
 FROM node:20-slim
 
@@ -24,23 +29,23 @@ WORKDIR /app
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
-# Warm Claude Code: write any first-run config files at build time.
-# --bare: forces API-key-only auth, skips OAuth/keychain entirely.
-# Uses a placeholder key — the warmup only initialises config files, not auth.
+# Create non-root user — claude-code refuses --dangerously-skip-permissions as root
+RUN useradd -m -u 1001 -s /bin/bash ghost && chown -R ghost:ghost /app
+
+USER ghost
+
+# Warm Claude Code config files as the runtime user (non-root, so the flag works)
 RUN ANTHROPIC_API_KEY=build-time-placeholder \
     claude -p "ok" --bare --dangerously-skip-permissions 2>/dev/null || true
 
-COPY . .
+COPY --chown=ghost:ghost . .
 
-# Data directory — mount an EBS volume here in production
+# Data directory — mount an EBS volume here in production (chown 1001 on host)
 RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 
 EXPOSE 8000
 
-# Claude Code uses ANTHROPIC_API_KEY (never OAuth in container).
-# Inference scripts use GEMINI_API_KEY.
-# Both must be set in docker-compose.yml or EC2 user-data.
 ENV GHOST_DATA_DIR=/app/data
 
 CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

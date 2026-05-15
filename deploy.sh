@@ -87,6 +87,9 @@ if [ -n "\$DEVICE" ] && [ -b "/dev/\$DEVICE" ]; then
   mount "/dev/\$DEVICE" /data
   echo "/dev/\$DEVICE /data ext4 defaults 0 2" >> /etc/fstab
 fi
+# chown to uid 1001 = 'ghost' user inside the container
+mkdir -p /data
+chown 1001:1001 /data
 
 # Clone repo
 echo "Cloning repo..."
