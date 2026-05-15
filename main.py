@@ -116,10 +116,16 @@ def _init_project(project: str):
 def _list_projects() -> list[str]:
     if not DATA_DIR.exists():
         return []
-    return sorted(
-        d.name for d in DATA_DIR.iterdir()
-        if d.is_dir() and (d / "data.db").exists()
-    )
+    results = []
+    for d in DATA_DIR.iterdir():
+        if not d.is_dir():
+            continue
+        try:
+            if (d / "data.db").exists():
+                results.append(d.name)
+        except PermissionError:
+            continue
+    return sorted(results)
 
 
 def _schema(project: str) -> dict:
