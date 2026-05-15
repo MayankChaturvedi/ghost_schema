@@ -49,14 +49,24 @@ aws ec2 authorize-security-group-ingress --region "$REGION" \
 USER_DATA=$(cat <<SCRIPT
 #!/bin/bash
 set -euo pipefail
-exec > /var/log/ghost-schema-init.log 2>&1
+# Log to file AND console (visible in EC2 console output)
+exec > >(tee /var/log/ghost-schema-init.log) 2>&1
+echo "=== Ghost Schema init starting ==="
 
-yum update -y
-yum install -y docker git
+# AL2023 runs dnf-automatic at boot; wait for the lock to clear
+echo "Waiting for dnf lock..."
+while fuser /var/lib/rpm/.rpm.lock /var/lib/dnf/metadata_lock.pid >/dev/null 2>&1; do
+  sleep 3
+done
+
+echo "Installing docker and git..."
+dnf install -y docker git
+
 systemctl enable docker
 systemctl start docker
 
 # Docker Compose V2 plugin
+echo "Installing docker compose..."
 mkdir -p /usr/local/lib/docker/cli-plugins
 curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
      -o /usr/local/lib/docker/cli-plugins/docker-compose
@@ -65,13 +75,15 @@ chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 # Mount EBS data volume at /data
 DEVICE=\$(lsblk -dno NAME,TYPE | awk '\$2=="disk" && \$1!="nvme0n1" {print \$1; exit}')
 if [ -n "\$DEVICE" ] && [ -b "/dev/\$DEVICE" ]; then
+  echo "Mounting EBS device /dev/\$DEVICE at /data..."
   mkfs.ext4 -F "/dev/\$DEVICE" 2>/dev/null || true
   mkdir -p /data
   mount "/dev/\$DEVICE" /data
   echo "/dev/\$DEVICE /data ext4 defaults 0 2" >> /etc/fstab
 fi
 
-# Clone repo (public — disable credential prompts)
+# Clone repo
+echo "Cloning repo..."
 GIT_TERMINAL_PROMPT=0 git clone --depth 1 \
   https://github.com/MayankChaturvedi/ghost_schema /opt/ghost-schema
 
@@ -85,8 +97,9 @@ ENV
 # Point data volume at EBS mount
 sed -i 's|./data:/app/data|/data:/app/data|' docker-compose.yml
 
+echo "Starting docker compose..."
 docker compose up -d --build
-echo "Ghost Schema started."
+echo "=== Ghost Schema init complete ==="
 SCRIPT
 )
 
