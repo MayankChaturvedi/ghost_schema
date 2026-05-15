@@ -59,18 +59,13 @@ while fuser /var/lib/rpm/.rpm.lock /var/lib/dnf/metadata_lock.pid >/dev/null 2>&
   sleep 3
 done
 
-echo "Installing docker and git..."
-dnf install -y docker git
+echo "Installing Docker CE (official repo — ships buildx 0.17+ and compose plugin)..."
+dnf install -y dnf-plugins-core git
+dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 systemctl enable docker
 systemctl start docker
-
-# Docker Compose V2 plugin
-echo "Installing docker compose..."
-mkdir -p /usr/local/lib/docker/cli-plugins
-curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
-     -o /usr/local/lib/docker/cli-plugins/docker-compose
-chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Mount EBS data volume at /data
 DEVICE=\$(lsblk -dno NAME,TYPE | awk '\$2=="disk" && \$1!="nvme0n1" {print \$1; exit}')
