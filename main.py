@@ -267,10 +267,11 @@ async def create_project(body: dict):
     name = (body.get("name") or "").strip()
     if not name:
         raise HTTPException(400, "Project name required")
-    if _project_path(name).exists():
-        raise HTTPException(409, f"Project '{name}' already exists")
-    _init_project(name)
-    return {"project": name, "created": True}
+    safe = _safe_name(name)
+    if _project_path(safe).exists():
+        raise HTTPException(409, f"Project '{safe}' already exists")
+    _init_project(safe)
+    return {"project": safe, "created": True}
 
 
 @app.delete("/api/projects/{project}")

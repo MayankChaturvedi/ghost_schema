@@ -378,9 +378,10 @@ async function createProject() {
   if (!name) return;
   const res = await fetch('/api/projects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
   if (res.ok) {
+    const d = await res.json();
     input.value = '';
     await loadProjects();
-    selectProject(name);
+    selectProject(d.project);
   } else {
     const d = await res.json();
     alert(d.detail || 'Error creating project');
@@ -402,7 +403,7 @@ async function deleteProject(name) {
 function selectProject(name) {
   currentProject = name;
   document.getElementById('noProject').style.display = 'none';
-  document.getElementById('workspace').style.display = '';
+  document.getElementById('workspace').style.display = 'flex';
   document.getElementById('execLog').classList.remove('visible');
   document.getElementById('resultArea').classList.remove('visible');
   document.getElementById('resultArea').innerHTML = '';
@@ -632,7 +633,7 @@ function esc(s) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-  await checkConfig();
+  try { await checkConfig(); } catch(e) { console.warn('config check failed:', e); }
   loadProjects();
   setInterval(loadProjects, 15000);
 }
