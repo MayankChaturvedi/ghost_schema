@@ -59,13 +59,24 @@ while fuser /var/lib/rpm/.rpm.lock /var/lib/dnf/metadata_lock.pid >/dev/null 2>&
   sleep 3
 done
 
-echo "Installing Docker CE (official repo — ships buildx 0.17+ and compose plugin)..."
-dnf install -y dnf-plugins-core git
-dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+echo "Installing docker and git..."
+dnf install -y docker git
 
 systemctl enable docker
 systemctl start docker
+
+# Install buildx plugin (AL2023 ships an old one; compose build needs 0.17+)
+echo "Installing buildx and compose plugins..."
+mkdir -p /usr/local/lib/docker/cli-plugins
+BUILDX_VER=\$(curl -fsSL https://api.github.com/repos/docker/buildx/releases/latest | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
+curl -fsSL "https://github.com/docker/buildx/releases/download/v\${BUILDX_VER}/buildx-v\${BUILDX_VER}.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
+# Install compose plugin
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Mount EBS data volume at /data
 DEVICE=\$(lsblk -dno NAME,TYPE | awk '\$2=="disk" && \$1!="nvme0n1" {print \$1; exit}')
