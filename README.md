@@ -2,10 +2,6 @@
 
 **Deep research on every query.**
 
-Upload raw CSVs. Ask questions in plain English. Ghost Schema figures out the rest.
-
----
-
 ## The idea
 
 ```
