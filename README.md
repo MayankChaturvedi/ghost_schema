@@ -1,16 +1,12 @@
-# Ghost Schema · Agentic Database
+# Ghost Schema · On-Prem Agentic Database · Proudly the slowest and the most expensive query engine · Most accurate
 
-**One Claude Code instance. One query. Zero schema design.**
+**Deep research on every query.**
 
 Upload raw CSVs. Ask questions in plain English. Ghost Schema figures out the rest.
 
 ---
 
 ## The idea
-
-Most databases require you to define a schema before you can query it. Ghost Schema flips this: columns don't exist until a question requires them.
-
-When a query needs reasoning about row content — *"which companies sell to healthcare?"*, *"is this B2B?"*, *"does this mention climate change?"* — Ghost Schema mints a **Just-In-Time column**: it spins up a Claude Code instance in a sandbox, which inspects the schema, writes a parallel Gemini Flash inference script, classifies every row, and caches the result. The next time the same attribute is needed, it's a plain SQL lookup.
 
 ```
 User query
