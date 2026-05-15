@@ -22,7 +22,7 @@ WORKDIR /app
 
 # Python dependencies
 COPY requirements.txt .
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Warm Claude Code: write any first-run config files at build time.
 # --bare: forces API-key-only auth, skips OAuth/keychain entirely.
