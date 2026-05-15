@@ -169,12 +169,14 @@ async def run(
         )
 
         result_text: Optional[str] = None
+        stderr_chunks: list[str] = []
 
         async def drain_stderr():
             while True:
                 chunk = await proc.stderr.read(4096)
                 if not chunk:
                     break
+                stderr_chunks.append(chunk.decode("utf-8", errors="replace"))
 
         async def read_stdout():
             nonlocal result_text
@@ -226,7 +228,12 @@ async def run(
         await asyncio.wait_for(proc.wait(), timeout=600)
 
         if not result_text:
-            raise RuntimeError("Claude Code did not output GHOST_SCHEMA_RESULT.")
+            stderr_tail = "".join(stderr_chunks)[-1000:]
+            raise RuntimeError(
+                f"Claude Code did not output GHOST_SCHEMA_RESULT.\n"
+                f"Exit code: {proc.returncode}\n"
+                f"Stderr: {stderr_tail or '(empty)'}"
+            )
 
         return _parse(result_text)
 
