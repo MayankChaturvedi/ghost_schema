@@ -68,6 +68,31 @@ Ghost Schema concept:
   requires multi-step reasoning (e.g. complex math, chained logic). Row-level
   classification (yes/no, category) never needs thinking — always disable it.
 
+  IMPORTANT — Always wrap every Gemini call in retry logic with exponential
+  backoff. Rate limits (429) and transient errors (503/502) are common when
+  making many parallel requests. Use this pattern in every inference script:
+
+    import asyncio, random
+    from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
+
+    async def call_gemini_with_retry(client, prompt, config, retries=5):
+        for attempt in range(retries):
+            try:
+                return await client.aio.models.generate_content(
+                    model="gemini-2.5-flash", contents=prompt, config=config)
+            except (ResourceExhausted, ServiceUnavailable) as e:
+                if attempt == retries - 1:
+                    raise
+                wait = (2 ** attempt) + random.uniform(0, 1)
+                await asyncio.sleep(wait)
+            except Exception as e:
+                if attempt == retries - 1:
+                    raise
+                await asyncio.sleep(2 ** attempt)
+
+  Also use an asyncio.Semaphore (limit 20) to cap concurrency and avoid
+  flooding the API when classifying large tables.
+
 Do your work, then end your response with EXACTLY this line:
 {marker} {{"jit_column_name": "col_or_null", "final_sql": "SELECT ...", "answer_prefix": "There are", "explanation": "one sentence"}}
 """
