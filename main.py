@@ -1,7 +1,7 @@
 """
 Ghost Schema — Agentic Database
-Multi-project: each project gets its own SQLite file in DATA_DIR.
-architect.py receives (query, db_path) and handles everything else.
+Each project lives in DATA_DIR/{project}/data.db.
+API keys are stored in DATA_DIR/config.json (env vars take precedence).
 """
 
 import asyncio
@@ -9,6 +9,7 @@ import csv
 import io
 import json
 import os
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -27,6 +28,7 @@ import architect
 # --------------------------------------------------------------------------- #
 
 DATA_DIR = Path(os.environ.get("GHOST_DATA_DIR", "data")).absolute()
+CONFIG_FILE = DATA_DIR / "config.json"
 
 app = FastAPI(title="Ghost Schema", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -34,14 +36,53 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # --------------------------------------------------------------------------- #
+# Key management                                                               #
+# --------------------------------------------------------------------------- #
+
+def _load_config() -> dict:
+    if CONFIG_FILE.exists():
+        try:
+            return json.loads(CONFIG_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+
+def _apply_config_to_env():
+    """Merge saved keys into os.environ (env vars take precedence)."""
+    cfg = _load_config()
+    for cfg_key, env_key in [
+        ("anthropic_api_key", "ANTHROPIC_API_KEY"),
+        ("gemini_api_key", "GEMINI_API_KEY"),
+    ]:
+        if cfg.get(cfg_key) and not os.environ.get(env_key):
+            os.environ[env_key] = cfg[cfg_key]
+
+
+def _keys_status() -> dict:
+    return {
+        "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "gemini_configured": bool(os.environ.get("GEMINI_API_KEY")),
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Project helpers                                                              #
 # --------------------------------------------------------------------------- #
 
-def _project_path(project: str) -> Path:
+def _safe_name(project: str) -> str:
     safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in project).strip("_")
     if not safe:
         raise ValueError("Invalid project name")
-    return DATA_DIR / f"{safe}.db"
+    return safe
+
+
+def _project_dir(project: str) -> Path:
+    return DATA_DIR / _safe_name(project)
+
+
+def _project_path(project: str) -> Path:
+    return _project_dir(project) / "data.db"
 
 
 def _conn(project: str) -> sqlite3.Connection:
@@ -55,10 +96,9 @@ def _conn(project: str) -> sqlite3.Connection:
 
 
 def _init_project(project: str):
-    """Create the project DB and the jit_columns table."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    db = _project_path(project)
-    c = sqlite3.connect(str(db))
+    d = _project_dir(project)
+    d.mkdir(parents=True, exist_ok=True)
+    c = sqlite3.connect(str(d / "data.db"))
     c.execute("""
         CREATE TABLE IF NOT EXISTS jit_columns (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +116,10 @@ def _init_project(project: str):
 def _list_projects() -> list[str]:
     if not DATA_DIR.exists():
         return []
-    return sorted(p.stem for p in DATA_DIR.glob("*.db"))
+    return sorted(
+        d.name for d in DATA_DIR.iterdir()
+        if d.is_dir() and (d / "data.db").exists()
+    )
 
 
 def _schema(project: str) -> dict:
@@ -90,11 +133,9 @@ def _schema(project: str) -> dict:
     for t in tables:
         name = t["name"]
         cols = c.execute(f'PRAGMA table_info("{name}")').fetchall()
-        sample = c.execute(f'SELECT * FROM "{name}" LIMIT 3').fetchall()
         count = c.execute(f'SELECT COUNT(*) as n FROM "{name}"').fetchone()["n"]
         schema[name] = {
             "columns": [{"name": r["name"], "type": r["type"]} for r in cols],
-            "sample": [dict(r) for r in sample],
             "row_count": count,
         }
 
@@ -159,6 +200,17 @@ def _jit_distribution(project: str, column: str) -> dict:
     return {r["value"]: r["n"] for r in rows}
 
 
+def _migrate_flat_dbs():
+    """Move legacy data/project.db files to data/project/data.db."""
+    if not DATA_DIR.exists():
+        return
+    for db_file in DATA_DIR.glob("*.db"):
+        dest_dir = DATA_DIR / db_file.stem
+        if not dest_dir.exists():
+            dest_dir.mkdir()
+            shutil.move(str(db_file), str(dest_dir / "data.db"))
+
+
 # --------------------------------------------------------------------------- #
 # Routes                                                                      #
 # --------------------------------------------------------------------------- #
@@ -166,6 +218,8 @@ def _jit_distribution(project: str, column: str) -> dict:
 @app.on_event("startup")
 async def _startup():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    _migrate_flat_dbs()
+    _apply_config_to_env()
 
 
 @app.get("/")
@@ -176,6 +230,29 @@ async def root():
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Config / Key management ────────────────────────────────────────────────────
+
+@app.get("/api/config")
+async def get_config():
+    return _keys_status()
+
+
+@app.post("/api/config")
+async def save_config(body: dict):
+    cfg = _load_config()
+    for field, env_key in [
+        ("anthropic_api_key", "ANTHROPIC_API_KEY"),
+        ("gemini_api_key", "GEMINI_API_KEY"),
+    ]:
+        val = (body.get(field) or "").strip()
+        if val:
+            cfg[field] = val
+            os.environ[env_key] = val
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG_FILE.write_text(json.dumps(cfg, indent=2))
+    return {"saved": True, **_keys_status()}
 
 
 # ── Projects ──────────────────────────────────────────────────────────────────
@@ -198,10 +275,10 @@ async def create_project(body: dict):
 
 @app.delete("/api/projects/{project}")
 async def delete_project(project: str):
-    db = _project_path(project)
-    if not db.exists():
+    d = _project_dir(project)
+    if not d.exists():
         raise HTTPException(404, f"Project '{project}' not found")
-    db.unlink()
+    shutil.rmtree(str(d))
     return {"project": project, "deleted": True}
 
 
@@ -213,7 +290,6 @@ async def ingest(
     file: UploadFile = File(...),
     table_name: str = Form(""),
 ):
-    # Default table name = CSV filename without extension
     name = table_name.strip() or Path(file.filename or "data").stem
     content = await file.read()
     try:
@@ -244,10 +320,6 @@ async def delete_jit(project: str, table: str, column: str):
 
 @app.get("/api/projects/{project}/query/stream")
 async def query_stream(project: str, q: str):
-    """
-    SSE. Claude Code receives (query, db_path) and figures out everything:
-    schema inspection, JIT inference via Gemini Flash, self-correction, final SQL.
-    """
     db_path = str(_project_path(project))
     if not Path(db_path).exists():
         raise HTTPException(404, f"Project '{project}' not found")
