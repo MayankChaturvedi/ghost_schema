@@ -48,39 +48,45 @@ aws ec2 authorize-security-group-ingress --region "$REGION" \
 # ── User-data: install Docker + run Ghost Schema ─────────────────────────────
 USER_DATA=$(cat <<SCRIPT
 #!/bin/bash
-set -e
+set -euo pipefail
+exec > /var/log/ghost-schema-init.log 2>&1
+
 yum update -y
 yum install -y docker git
 systemctl enable docker
 systemctl start docker
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" \
-     -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+
+# Docker Compose V2 plugin
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+     -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Mount EBS data volume at /data
-DEVICE=\$(lsblk -dno NAME | grep -v nvme0 | grep nvme | head -1 || echo "xvdf")
-DEVICE="/dev/\$DEVICE"
-if [ -b "\$DEVICE" ]; then
-  mkfs.ext4 -F "\$DEVICE" 2>/dev/null || true
+DEVICE=\$(lsblk -dno NAME,TYPE | awk '\$2=="disk" && \$1!="nvme0n1" {print \$1; exit}')
+if [ -n "\$DEVICE" ] && [ -b "/dev/\$DEVICE" ]; then
+  mkfs.ext4 -F "/dev/\$DEVICE" 2>/dev/null || true
   mkdir -p /data
-  mount "\$DEVICE" /data
-  echo "\$DEVICE /data ext4 defaults 0 2" >> /etc/fstab
+  mount "/dev/\$DEVICE" /data
+  echo "/dev/\$DEVICE /data ext4 defaults 0 2" >> /etc/fstab
 fi
 
-# Clone + run
-git clone https://github.com/MayankChaturvedi/ghost_schema /opt/ghost-schema || true
+# Clone repo (public — disable credential prompts)
+GIT_TERMINAL_PROMPT=0 git clone --depth 1 \
+  https://github.com/MayankChaturvedi/ghost_schema /opt/ghost-schema
+
 cd /opt/ghost-schema
 
 cat > .env <<ENV
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 GEMINI_API_KEY=${GEMINI_API_KEY}
-GHOST_DATA_DIR=/data
 ENV
 
-# Override data path to use the EBS volume
+# Point data volume at EBS mount
 sed -i 's|./data:/app/data|/data:/app/data|' docker-compose.yml
 
-docker-compose up -d --build
+docker compose up -d --build
+echo "Ghost Schema started."
 SCRIPT
 )
 
