@@ -56,7 +56,17 @@ Ghost Schema concept:
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     response = await client.aio.models.generate_content(
         model="gemini-2.5-flash", contents=prompt,
-        config=types.GenerateContentConfig(temperature=0.0, max_output_tokens=5))
+        config=types.GenerateContentConfig(
+            temperature=0.0,
+            max_output_tokens=50,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ))
+
+  IMPORTANT — Gemini 2.5 Flash uses thinking tokens by default. Thinking tokens
+  silently consume max_output_tokens before producing any output, causing empty
+  or truncated responses. Always set thinking_budget=0 UNLESS the task genuinely
+  requires multi-step reasoning (e.g. complex math, chained logic). Row-level
+  classification (yes/no, category) never needs thinking — always disable it.
 
 Do your work, then end your response with EXACTLY this line:
 {marker} {{"jit_column_name": "col_or_null", "final_sql": "SELECT ...", "answer_prefix": "There are", "explanation": "one sentence"}}
