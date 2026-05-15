@@ -68,16 +68,16 @@ if [ -b "\$DEVICE" ]; then
 fi
 
 # Clone + run
-git clone https://github.com/your-repo/ghost-schema /opt/ghost-schema || true
+git clone https://github.com/MayankChaturvedi/ghost_schema /opt/ghost-schema || true
 cd /opt/ghost-schema
 
 cat > .env <<ENV
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 GEMINI_API_KEY=${GEMINI_API_KEY}
+GHOST_DATA_DIR=/data
 ENV
 
 # Override data path to use the EBS volume
-export GHOST_DB_PATH=/data/ghost.db
 sed -i 's|./data:/app/data|/data:/app/data|' docker-compose.yml
 
 docker-compose up -d --build
